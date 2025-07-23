@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Cinnamoroll 冒險</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      background-color: #FFD1DC;
+      font-family: 'Comic Sans MS', cursive, sans-serif;
+      overflow: hidden;
+      touch-action: manipulation;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    #gameContainer {
+      position: relative;
+      width: 100%;
+      max-width: 800px;
+      height: 400px;
+      margin: 0 auto;
+    }
+    
+    #gameCanvas {
+      background-color: #B5E8FF;
+      display: block;
+      width: 100%;
+      height: 100%;
+      border: 5px solid #FF9EBB;
+      border-radius: 15px;
+      box-shadow: 0 0 25px rgba(255, 158, 187, 0.5);
+    }
+    
+    #uiContainer {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      max-width: 800px;
+      padding: 15px;
+      color: #FF6B8B;
+      font-size: 22px;
+      font-weight: bold;
+      text-shadow: 1px 1px 3px rgba(255, 255, 255, 0.8);
+    }
+    
+    #mobileControls {
+      display: none;
+      width: 100%;
+      max-width: 800px;
+      justify-content: space-between;
+      padding: 20px;
+    }
+    
+    .mobile-btn {
+      width: 85px;
+      height: 85px;
+      border-radius: 50%;
+      background-color: rgba(255, 255, 255, 0.8);
+      border: 4px solid #FF9EBB;
+      font-size: 28px;
+      font-weight: bold;
+      color: #FF6B8B;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      box-shadow: 0 4px 8px rgba(255, 110, 140, 0.3);
+    }
+    
+    #startScreen, #gameOverScreen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(255, 214, 220, 0.9);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: #FF6B8B;
+      z-index: 10;
+      text-align: center;
+    }
+    
+    #gameOverScreen {
+      display: none;
+    }
+    
+    .screen-title {
+      font-size: 52px;
+      margin-bottom: 25px;
+      color: #FF6B8B;
+      text-shadow: 3px 3px 0 #FFFFFF;
+      font-weight: bold;
+    }
+    
+    .screen-text {
+      font-size: 20px;
+      margin-bottom: 30px;
+      max-width: 80%;
+    }
+    
+    .screen-btn {
+      padding: 16px 35px;
+      background-color: #FF9EBB;
+      color: white;
+      border: none;
+      border-radius: 50px;
+      font-size: 22px;
+      margin: 10px;
+      cursor: pointer;
+      box-shadow: 0 5px 0 #FF6B8B;
+      transition: all 0.1s;
+      font-weight: bold;
+    }
+    
+    .screen-btn:active {
+      transform: translateY(5px);
+      box-shadow: none;
+    }
+    
+    .character-display {
+      display: flex;
+      justify-content: center;
+      margin: 20px 0;
+    }
+    
+    .character {
+      width: 80px;
+      height: 80px;
+      margin: 0 20px;
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+    }
+    
+    @media (max-width: 768px) {
+      #mobileControls {
+        display: flex;
+      }
+      
+      #uiContainer {
+        font-size: 18px;
+        padding: 10px;
+      }
+      
+      .screen-title {
+        font-size: 40px;
+      }
+      
+      .screen-btn {
+        padding: 14px 30px;
+        font-size: 20px;
+      }
+      
+      .mobile-btn {
+        width: 75px;
+        height: 75px;
+        font-size: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="uiContainer">
+    <div id="scoreDisplay">⭐: 0</div>
+    <div id="highScoreDisplay">🏆: 0</div>
+    <div id="livesDisplay">❤️: 3</div>
+  </div>
+  
+  <div id="gameContainer">
+    <canvas id="gameCanvas"></canvas>
+    
+    <div id="startScreen">
+      <h1 class="screen-title">Cinnamoroll 大冒險</h1>
+      <p class="screen-text">幫助 Cinnamoroll 收集星星，避開 Pompompurin！</p>
+      
+      <div class="character-display">
+        <div id="cinnamorollDisplay" class="character"></div>
+        <div id="pompompurinDisplay" class="character"></div>
+      </div>
+      
+      <button class="screen-btn" id="startBtn">開始遊戲</button>
+      <button class="screen-btn" id="muteBtn">🔊 音效開啟</button>
+    </div>
+    
+    <div id="gameOverScreen">
+      <h1 class="screen-title">遊戲結束</h1>
+      <p class="screen-text" id="finalScore">你收集了 ⭐: 0</p>
+      <button class="screen-btn" id="restartBtn">再玩一次</button>
+    </div>
+  </div>
+  
+  <div id="mobileControls">
+    <div class="mobile-btn" id="leftBtn">←</div>
+    <div class="mobile-btn" id="rightBtn">→</div>
+    <div class="mobile-btn" id="jumpBtn">跳躍</div>
+  </div>
+
+  <!-- 音效元素 -->
+  <audio id="bgMusic" loop>
+    <source src="https://assets.mixkit.co/music/preview/mixkit-happy-children-138.mp3" type="audio/mpeg">
+  </audio>
+  <audio id="jumpSound">
+    <source src="https://assets.mixkit.co/sfx/preview/mixkit-quick-jump-arcade-game-239.mp3" type="audio/mpeg">
+  </audio>
+  <audio id="collectSound">
+    <source src="https://assets.mixkit.co/sfx/preview/mixkit-unlock-game-notification-253.mp3" type="audio/mpeg">
+  </audio>
+  <audio id="hitSound">
+    <source src="https://assets.mixkit.co/sfx/preview/mixkit-arcade-retro-game-over-213.mp3" type="audio/mpeg">
+  </audio>
+
+  <script>
+    // 遊戲設定
+    const config = {
+      width: 800,
+      height: 400,
+      localStorageKey: 'cinnamorollHighScore',
+      gravity: 0.5,
+      playerSpeed: 6,
+      jumpPower: 13,
+      enemySpeed: 4,
+      starPoints: 10,
+      cloudCount: 8
+    };
+    
+    // 遊戲元素
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const startScreen = document.getElementById('startScreen');
+    const gameOverScreen = document.getElementById('gameOverScreen');
+    const startBtn = document.getElementById('startBtn');
+    const restartBtn = document.getElementById('restartBtn');
+    const muteBtn = document.getElementById('muteBtn');
+    const scoreDisplay = document.getElementById('scoreDisplay');
+    const highScoreDisplay = document.getElementById('highScoreDisplay');
+    const livesDisplay = document.getElementById('livesDisplay');
+    const finalScore = document.getElementById('finalScore');
+    const leftBtn = document.getElementById('leftBtn');
+    const rightBtn = document.getElementById('rightBtn');
+    const jumpBtn = document.getElementById('jumpBtn');
+    
+    // 音效元素
+    const bgMusic = document.getElementById('bgMusic');
+    const jumpSound = document.getElementById('jumpSound');
+    const collectSound = document.getElementById('collectSound');
+    const hitSound = document.getElementById('hitSound');
+    
+    // 遊戲狀態
+    let gameState = {
+      score: 0,
+      highScore: localStorage.getItem(config.localStorageKey) || 0,
+      lives: 3,
+      isRunning: false,
+      muted: false,
+      keys: {
+        ArrowLeft: false,
+        ArrowRight: false,
+        Space: false
+      },
+      clouds: []
+    };
+    
+    // 遊戲物件
+    let player, enemies = [], stars = [], platforms = [];
+    
+    // 顏色設定
+    const colors = {
+      background: '#B5E8FF',
+      cloud: '#FFFFFF',
+      platform: '#FFB6C1',
+      platformEdge: '#FF8FAB',
+      cinnamoroll: {
+        body: '#FFFFFF',
+        ears: '#FFFFFF',
+        cheeks: '#FFD1DC',
+        eyes: '#1E88E5',
+        nose: 'black',
+        earShadow: '#E0F7FA',
+        blush: '#FF9EBB'
+      },
+      pompompurin: {
+        body: '#FDD835',
+        hat: '#5D4037',
+        hatBand: '#D32F2F',
+        eyes: 'black',
+        cheeks: '#FFAB91',
+        mouth: '#5D4037',
+        muzzle: '#FFE082'
+      },
+      star: '#FFD700'
+    };
+    
+    // 初始化遊戲
+    function initGame() {
+      // 設定畫布大小
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
+      
+      // 載入最高分
+      highScoreDisplay.textContent = `🏆: ${gameState.highScore}`;
+      
+      // 初始化雲朵
+      initClouds();
+      
+      // 事件監聽器
+      setupEventListeners();
+      
+      // 開始畫面
+      startBtn.addEventListener('click', startGame);
+      restartBtn.addEventListener('click', startGame);
+      muteBtn.addEventListener('click', toggleMute);
+      
+      // 繪製開始畫面角色預覽
+      drawCharacterPreview();
+      
+      // 預載音效
+      bgMusic.load();
+      jumpSound.load();
+      collectSound.load();
+      hitSound.load();
+    }
+    
+    // 切換靜音
+    function toggleMute() {
+      gameState.muted = !gameState.muted;
+      muteBtn.textContent = gameState.muted ? "🔇 音效關閉" : "🔊 音效開啟";
+      
+      if (gameState.muted) {
+        bgMusic.pause();
+      } else if (gameState.isRunning) {
+        bgMusic.play().catch(e => console.log("Audio play failed:", e));
+      }
+    }
+    
+    // 繪製開始畫面角色預覽
+    function drawCharacterPreview() {
+      const cinnamorollCanvas = document.createElement('canvas');
+      cinnamorollCanvas.width = 100;
+      cinnamorollCanvas.height = 100;
+      const cinnamorollCtx = cinnamorollCanvas.getContext('2d');
+      drawCinnamoroll(cinnamorollCtx, 50, 50, 40, 'right');
+      document.getElementById('cinnamorollDisplay').style.backgroundImage = `url(${cinnamorollCanvas.toDataURL()})`;
+      
+      const pompompurinCanvas = document.createElement('canvas');
+      pompompurinCanvas.width = 100;
+      pompompurinCanvas.height = 100;
+      const pompompurinCtx = pompompurinCanvas.getContext('2d');
+      drawPompompurin(pompompurinCtx, 50, 50, 40);
+      document.getElementById('pompompurinDisplay').style.backgroundImage = `url(${pompompurinCanvas.toDataURL()})`;
+    }
+    
+    // 調整畫布大小
+    function resizeCanvas() {
+      const container = document.getElementById('gameContainer');
+      canvas.width = container.clientWidth;
+      canvas.height = container.clientHeight;
+      
+      // 更新遊戲設定中的高度和寬度
+      config.width = canvas.width;
+      config.height = canvas.height;
+      
+      if (gameState.isRunning) {
+        draw();
+      }
+    }
+    
+    // 初始化雲朵
+    function initClouds() {
+      gameState.clouds = [];
+      for (let i = 0; i < config.cloudCount; i++) {
+        gameState.clouds.push({
+          x: Math.random() * config.width,
+          y: Math.random() * (config.height / 3),
+          size: 20 + Math.random() * 30,
+          speed: 0.2 + Math.random() * 0.5
+        });
+      }
+    }
+    
+    // 設定事件監聽器
+    function setupEventListeners() {
+      // 鍵盤控制
+      document.addEventListener('keydown', (e) => {
+        if (['ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) {
+          gameState.keys[e.code] = true;
+          e.preventDefault();
+        }
+      });
+      
+      document.addEventListener('keyup', (e) => {
+        if (['ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) {
+          gameState.keys[e.code] = false;
+          e.preventDefault();
+        }
+      });
+      
+      // 手機觸控控制 - 左鍵
+      leftBtn.addEventListener('touchstart', (e) => {
+        gameState.keys.ArrowLeft = true;
+        e.preventDefault();
+      });
+      
+      leftBtn.addEventListener('touchend', (e) => {
+        gameState.keys.ArrowLeft = false;
+        e.preventDefault();
+      });
+      
+      // 手機觸控控制 - 右鍵
+      rightBtn.addEventListener('touchstart', (e) => {
+        gameState.keys.ArrowRight = true;
+        e.preventDefault();
+      });
+      
+      rightBtn.addEventListener('touchend', (e) => {
+        gameState.keys.ArrowRight = false;
+        e.preventDefault();
+      });
+      
+      // 手機觸控控制 - 跳躍
+      jumpBtn.addEventListener('touchstart', (e) => {
+        gameState.keys.Space = true;
+        e.preventDefault();
+      });
+      
+      jumpBtn.addEventListener('touchend', (e) => {
+        gameState.keys.Space = false;
+        e.preventDefault();
+      });
+      
+      // 點擊按鈕控制 (為非觸控設備)
+      leftBtn.addEventListener('mousedown', () => gameState.keys.ArrowLeft = true);
+      leftBtn.addEventListener('mouseup', () => gameState.keys.ArrowLeft = false);
+      leftBtn.addEventListener('mouseleave', () => gameState.keys.ArrowLeft = false);
+      
+      rightBtn.addEventListener('mousedown', () => gameState.keys.ArrowRight = true);
+      rightBtn.addEventListener('mouseup', () => gameState.keys.ArrowRight = false);
+      rightBtn.addEventListener('mouseleave', () => gameState.keys.ArrowRight = false);
+      
+      jumpBtn.addEventListener('mousedown', () => gameState.keys.Space = true);
+      jumpBtn.addEventListener('mouseup', () => gameState.keys.Space = false);
+      jumpBtn.addEventListener('mouseleave', () => gameState.keys.Space = false);
+      
+      // 點擊畫面播放背景音樂
+      canvas.addEventListener('click', () => {
+        if (bgMusic.paused && !gameState.muted) {
+          bgMusic.play().catch(e => console.log("Audio play failed:", e));
+        }
+      });
+    }
+    
+    // 開始遊戲
+    function startGame() {
+      // 重置遊戲狀態
+      gameState.score = 0;
+      gameState.lives = 3;
+      gameState.isRunning = true;
+      
+      // 隱藏開始和結束畫面
+      startScreen.style.display = 'none';
+      gameOverScreen.style.display = 'none';
+      
+      // 更新UI
+      updateUI();
+      
+      // 初始化遊戲物件
+      initGameObjects();
+      
+      // 播放背景音樂
+      if (!gameState.muted) {
+        bgMusic.currentTime = 0;
+        bgMusic.play().catch(e => console.log("Audio play failed:", e));
+      }
+      
+      // 開始遊戲循環
+      gameLoop();
+    }
+    
+    // 初始化遊戲物件
+    function initGameObjects() {
+      // 玩家 (Cinnamoroll)
+      player = {
+        x: 100,
+        y: config.height - 150,
+        width: 50,
+        height: 60,
+        velX: 0,
+        velY: 0,
+        isJumping: false,
+        direction: 'right'
+      };
+      
+      // 平台
+      platforms = [
+        // 地面
+        { x: 0, y: config.height - 50, width: config.width, height: 50 },
+        // 浮空平台
+        { x: 200, y: 300, width: 150, height: 20 },
+        { x: 400, y: 250, width: 150, height: 20 },
+        { x: 600, y: 200, width: 150, height: 20 },
+        { x: 300, y: 150, width: 100, height: 20 },
+        { x: 500, y: 100, width: 100, height: 20 }
+      ];
+      
+      // 敵人 (Pompompurin)
+      enemies = [
+        { x: 500, y: config.height - 100, width: 55, height: 55, speed: -2.5 },
+        { x: 800, y: 250, width: 55, height: 55, speed: -3.2 },
+        { x: 1000, y: 150, width: 55, height: 55, speed: -2.8 }
+      ];
+      
+      // 星星
+      stars = [
+        { x: 250, y: 260, width: 30, height: 30, collected: false },
+        { x: 450, y: 210, width: 30, height: 30, collected: false },
+        { x: 650, y: 160, width: 30, height: 30, collected: false },
+        { x: 350, y: 110, width: 30, height: 30, collected: false },
+        { x: 550, y: 60, width: 30, height: 30, collected: false }
+      ];
+    }
+    
+    // 遊戲循環
+    function gameLoop() {
+      if (!gameState.isRunning) return;
+      
+      update();
+      draw();
+      
+      requestAnimationFrame(gameLoop);
+    }
+    
+    // 更新遊戲狀態
+    function update() {
+      // 玩家移動
+      if (gameState.keys.ArrowLeft) {
+        player.velX = -config.playerSpeed;
+        player.direction = 'left';
+      } else if (gameState.keys.ArrowRight) {
+        player.velX = config.playerSpeed;
+        player.direction = 'right';
+      } else {
+        player.velX = 0;
+      }
+      
+      // 跳躍
+      if (gameState.keys.Space && !player.isJumping) {
+        player.velY = -config.jumpPower;
+        player.isJumping = true;
+        if (!gameState.muted) {
+          jumpSound.currentTime = 0;
+          jumpSound.play().catch(e => console.log("Jump sound failed:", e));
+        }
+      }
+      
+      // 應用重力
+      player.velY += config.gravity;
+      
+      // 更新玩家位置
+      player.x += player.velX;
+      player.y += player.velY;
+      
+      // 邊界檢查
+      if (player.x < 0) player.x = 0;
+      if (player.x + player.width > config.width) player.x = config.width - player.width;
+      
+      // 平台碰撞檢測
+      let onPlatform = false;
+      platforms.forEach(platform => {
+        if (
+          player.x + player.width > platform.x &&
+          player.x < platform.x + platform.width &&
+          player.y + player.height >= platform.y &&
+          player.y + player.height <= platform.y + platform.height / 2 &&
+          player.velY > 0
+        ) {
+          player.y = platform.y - player.height;
+          player.velY = 0;
+          player.isJumping = false;
+          onPlatform = true;
+        }
+      });
+      
+      // 如果不在平台上，則標記為跳躍狀態
+      if (!onPlatform && player.velY >= 0) {
+        player.isJumping = true;
+      }
+      
+      // 敵人移動和碰撞檢測
+      enemies.forEach(enemy => {
+        enemy.x += enemy.speed;
+        
+        // 敵人邊界檢查
+        if (enemy.x + enemy.width < 0) {
+          enemy.x = config.width;
+        } else if (enemy.x > config.width) {
+          enemy.x = -enemy.width;
+        }
+        
+        // 玩家與敵人碰撞
+        if (checkCollision(player, enemy)) {
+          playerHit();
+        }
+      });
+      
+      // 星星收集
+      stars.forEach(star => {
+        if (!star.collected && checkCollision(player, star)) {
+          star.collected = true;
+          gameState.score += config.starPoints;
+          updateUI();
+          if (!gameState.muted) {
+            collectSound.currentTime = 0;
+            collectSound.play().catch(e => console.log("Collect sound failed:", e));
+          }
+        }
+      });
+      
+      // 檢查是否掉落畫面底部
+      if (player.y > config.height) {
+        playerHit();
+      }
+      
+      // 更新雲朵位置
+      gameState.clouds.forEach(cloud => {
+        cloud.x -= cloud.speed;
+        if (cloud.x + cloud.size * 3 < 0) {
+          cloud.x = config.width + cloud.size * 2;
+          cloud.y = Math.random() * (config.height / 3);
+        }
+      });
+    }
+    
+    // 碰撞檢測
+    function checkCollision(obj1, obj2) {
+      return (
+        obj1.x < obj2.x + obj2.width &&
+        obj1.x + obj1.width > obj2.x &&
+        obj1.y < obj2.y + obj2.height &&
+        obj1.y + obj1.height > obj2.y
+      );
+    }
+    
+    // 玩家被擊中
+    function playerHit() {
+      gameState.lives--;
+      updateUI();
+      
+      if (!gameState.muted) {
+        hitSound.currentTime = 0;
+        hitSound.play().catch(e => console.log("Hit sound failed:", e));
+      }
+      
+      if (gameState.lives <= 0) {
+        gameOver();
+      } else {
+        // 重置玩家位置
+        player.x = 100;
+        player.y = config.height - 150;
+        player.velY = 0;
+        player.isJumping = false;
+      }
+    }
+    
+    // 遊戲結束
+    function gameOver() {
+      gameState.isRunning = false;
+      bgMusic.pause();
+      
+      // 更新最高分
+      if (gameState.score > gameState.highScore) {
+        gameState.highScore = gameState.score;
+        localStorage.setItem(config.localStorageKey, gameState.highScore);
+        highScoreDisplay.textContent = `🏆: ${gameState.highScore}`;
+      }
+      
+      // 顯示結束畫面
+      finalScore.textContent = `你收集了 ⭐: ${gameState.score}`;
+      gameOverScreen.style.display = 'flex';
+    }
+    
+    // 更新UI
+    function updateUI() {
+      scoreDisplay.textContent = `⭐: ${gameState.score}`;
+      livesDisplay.textContent = `❤️: ${gameState.lives}`;
+    }
+    
+    // 繪製遊戲
+    function draw() {
+      // 清空畫布
+      ctx.clearRect(0, 0, config.width, config.height);
+      
+      // 繪製背景
+      ctx.fillStyle = colors.background;
+      ctx.fillRect(0, 0, config.width, config.height);
+      
+      // 繪製雲朵
+      ctx.fillStyle = colors.cloud;
+      gameState.clouds.forEach(cloud => {
+        drawCloud(ctx, cloud.x, cloud.y, cloud.size);
+      });
+      
+      // 繪製平台
+      platforms.forEach(platform => {
+        // 平台主體
+        ctx.fillStyle = colors.platform;
+        ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+        
+        // 平台邊緣
+        ctx.fillStyle = colors.platformEdge;
+        ctx.fillRect(platform.x, platform.y, platform.width, 5);
+        ctx.fillRect(platform.x, platform.y + platform.height - 5, platform.width, 5);
+      });
+      
+      // 繪製星星
+      stars.forEach(star => {
+        if (!star.collected) {
+          ctx.fillStyle = colors.star;
+          drawStar(ctx, star.x + star.width/2, star.y + star.height/2, 5, star.width/2, star.height/4);
+        }
+      });
+      
+      // 繪製敵人 (Pompompurin)
+      enemies.forEach(enemy => {
+        drawPompompurin(ctx, enemy.x + enemy.width/2, enemy.y + enemy.height/2, enemy.width/2);
+      });
+      
+      // 繪製玩家 (Cinnamoroll)
+      drawCinnamoroll(
+        ctx, 
+        player.x + player.width/2, 
+        player.y + player.height/2, 
+        player.width/2, 
+        player.direction
+      );
+    }
+    
+    // 繪製 Cinnamoroll (終極精細版)
+    function drawCinnamoroll(ctx, x, y, size, direction) {
+      ctx.save();
+      
+      // 根據方向決定是否翻轉
+      if (direction === 'left') {
+        ctx.translate(x * 2, 0);
+        ctx.scale(-1, 1);
+      }
+      
+      // 身體 (圓形)
+      ctx.fillStyle = colors.cinnamoroll.body;
+      ctx.beginPath();
+      ctx.arc(x, y, size, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // 耳朵陰影 (更立體)
+      ctx.fillStyle = colors.cinnamoroll.earShadow;
+      for (let i = 0; i < 5; i++) {
+        ctx.beginPath();
+        ctx.ellipse(
+          x - size * 0.6, 
+          y - size * 0.8 + i * 2, 
+          size * 0.5, 
+          size * 0.7, 
+          -Math.PI/6, 0, Math.PI * 2
+        );
+        ctx.fill();
+        
+        ctx.beginPath();
+        ctx.ellipse(
+          x + size * 0.6, 
+          y - size * 0.8 + i * 2, 
+          size * 0.5, 
+          size * 0.7, 
+          Math.PI/6, 0, Math.PI * 2
+        );
+        ctx.fill();
+      }
+      
+      // 耳朵 (更蓬鬆)
+      ctx.fillStyle = colors.cinnamoroll.ears;
+      ctx.beginPath();
+      ctx.ellipse(
+        x - size * 0.6, 
+        y - size * 0.8, 
+        size * 0.45, 
+        size * 0.65, 
+        -Math.PI/6, 0, Math.PI * 2
+      );
+      ctx.fill();
+      
+      ctx.beginPath();
+      ctx.ellipse(
+        x + size * 0.6, 
+        y - size * 0.8, 
+        size * 0.45, 
+        size * 0.65, 
+        Math.PI/6, 0, Math.PI * 2
+      );
+      ctx.fill();
+      
+      // 臉頰紅暈 (更自然)
+      ctx.fillStyle = colors.cinnamoroll.blush;
+      ctx.beginPath();
+      ctx.arc(x - size * 0.3, y + size * 0.1, size * 0.15, 0, Math.PI * 2);
+      ctx.arc(x + size * 0.3, y + size * 0.1, size * 0.15, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // 眼睛 (更生動的橢圓形)
+      ctx.fillStyle = colors.cinnamoroll.eyes;
+      ctx.beginPath();
+      ctx.ellipse(
+        x - size * 0.2, 
+        y - size * 0.1, 
+        size * 0.08, 
+        size * 0.12, 
+        0, 0, Math.PI * 2
+      );
+      ctx.ellipse(
+        x + size * 0.2, 
+        y - size * 0.1, 
+        size * 0.08, 
+        size * 0.12, 
+        0, 0, Math.PI * 2
+      );
+      ctx.fill();
+      
+      // 眼睛高光
+      ctx.fillStyle = 'white';
+      ctx.beginPath();
+      ctx.arc(x - size * 0.22, y - size * 0.12, size * 0.03, 0, Math.PI * 2);
+      ctx.arc(x + size * 0.18, y - size * 0.12, size * 0.03, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // 鼻子 (更立體)
+      ctx.fillStyle = colors.cinnamoroll.nose;
+      ctx.beginPath();
+      ctx.arc(x, y, size * 0.08, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // 嘴巴 (微笑曲線)
+      ctx.strokeStyle = colors.cinnamoroll.nose;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(x, y + size * 0.05, size * 0.05, 0, Math.PI);
+      ctx.stroke();
+      
+      ctx.restore();
+    }
+    
+    // 繪製 Pompompurin (終極精細版)
+    function drawPompompurin(ctx, x, y, size) {
+      // 身體 (圓形，帶陰影)
+      const bodyGradient = ctx.createRadialGradient(
+        x, y - size * 0.2, size * 0.1,
+        x, y, size
+      );
+      bodyGradient.addColorStop(0, '#FFEB3B');
+      bodyGradient.addColorStop(1, '#FBC02D');
+      
+      ctx.fillStyle = bodyGradient;
+      ctx.beginPath();
+      ctx.arc(x, y, size, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // 口鼻部
+      ctx.fillStyle = colors.pompompurin.muzzle;
+      ctx.beginPath();
+      ctx.ellipse(x, y + size * 0.1, size * 0.4, size * 0.3, 0, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // 帽子底部 (帶陰影)
+      const hatGradient = ctx.createLinearGradient(
+        x, y - size * 0.7,
+        x, y - size * 0.3
+      );
+      hatGradient.addColorStop(0, '#4E342E');
+      hatGradient.addColorStop(1, '#3E2723');
+      
+      ctx.fillStyle = hatGradient;
+      ctx.beginPath();
+      ctx.ellipse(x, y - size * 0.5, size * 0.9, size * 0.25, 0, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // 帽子頂部
+      ctx.beginPath();
+      ctx.ellipse(x, y - size * 0.7, size * 0.7, size * 0.3, 0, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // 帽子帶 (更立體)
+      const bandGradient = ctx.createLinearGradient(
+        x, y - size * 0.55,
+        x, y - size * 0.45
+      );
+      bandGradient.addColorStop(0, '#E53935');
+      bandGradient.addColorStop(1, '#C62828');
+      
+      ctx.fillStyle = bandGradient;
+      ctx.beginPath();
+      ctx.ellipse(x, y - size * 0.5, size * 0.9, size * 0.1, 0, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // 眼睛 (更生動)
+      ctx.fillStyle = colors.pompompurin.eyes;
+      ctx.beginPath();
+      ctx.ellipse(
+        x - size * 0.2, 
+        y - size * 0.1, 
+        size * 0.08, 
+        size * 0.12, 
+        0, 0, Math.PI * 2
+      );
+      ctx.ellipse(
+        x + size * 0.2, 
+        y - size * 0.1, 
+        size * 0.08, 
+        size * 0.12, 
+        0, 0, Math.PI * 2
+      );
+      ctx.fill();
+      
+      // 眼睛高光
+      ctx.fillStyle = 'white';
+      ctx.beginPath();
+      ctx.arc(x - size * 0.22, y - size * 0.12, size * 0.03, 0, Math.PI * 2);
+      ctx.arc(x + size * 0.18, y - size * 0.12, size * 0.03, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // 臉頰紅暈
+      ctx.fillStyle = colors.pompompurin.cheeks;
+      ctx.beginPath();
+      ctx.arc(x - size * 0.3, y + size * 0.1, size * 0.15, 0, Math.PI * 2);
+      ctx.arc(x + size * 0.3, y + size * 0.1, size * 0.15, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // 嘴巴 (微笑曲線)
+      ctx.strokeStyle = colors.pompompurin.mouth;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(x, y + size * 0.15, size * 0.1, 0.1 * Math.PI, 0.9 * Math.PI);
+      ctx.stroke();
+      
+      // 鼻子
+      ctx.fillStyle = colors.pompompurin.mouth;
+      ctx.beginPath();
+      ctx.arc(x, y + size * 0.05, size * 0.04, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    
+    // 繪製雲朵
+    function drawCloud(ctx, x, y, size) {
+      ctx.beginPath();
+      ctx.arc(x, y, size, 0, Math.PI * 2);
+      ctx.arc(x + size * 1.3, y, size * 1.3, 0, Math.PI * 2);
+      ctx.arc(x + size * 2.5, y, size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    
+    // 繪製星星形狀
+    function drawStar(ctx, cx, cy, spikes, outerRadius, innerRadius) {
+      let rot = Math.PI / 2 * 3;
+      let x = cx;
+      let y = cy;
+      let step = Math.PI / spikes;
+      
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - outerRadius);
+      
+      for (let i = 0; i < spikes; i++) {
+        x = cx + Math.cos(rot) * outerRadius;
+        y = cy + Math.sin(rot) * outerRadius;
+        ctx.lineTo(x, y);
+        rot += step;
+        
+        x = cx + Math.cos(rot) * innerRadius;
+        y = cy + Math.sin(rot) * innerRadius;
+        ctx.lineTo(x, y);
+        rot += step;
+      }
+      
+      ctx.lineTo(cx, cy - outerRadius);
+      ctx.closePath();
+      ctx.fill();
+      
+      // 添加星星光暈
+      const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, outerRadius);
+      gradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+      gradient.addColorStop(1, 'rgba(255, 215, 0, 0)');
+      ctx.fillStyle = gradient;
+      ctx.fill();
+    }
+    
+    // 初始化遊戲
+    initGame();
+  </script>
+</body>
+</html>
